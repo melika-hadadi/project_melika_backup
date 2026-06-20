@@ -1,12 +1,38 @@
-# src/utils.py
 import re
 
-def clean_text(text: str) -> str:
-    """پاک‌سازی فواصل اضافه و کاراکترهای نامطلوب"""
-    text = re.sub(r'\n\s*\n', '\n\n', text)
-    text = re.sub(r'[ \t]+', ' ', text)
+def normalize(text: str) -> str:
+    if not text:
+        return ""
+
+    text = text.replace("ي", "ی").replace("ك", "ک")
+    text = re.sub(r"\s+", " ", text)
+
     return text.strip()
 
-def prepare_poem_chunk(title: str, poet: str, text: str) -> str:
-    """فرمت‌بندی متن برای دیتابیس (۳ آرگومان)"""
-    return f"عنوان: {title}\nشاعر: {poet}\nمتن:\n{text}"
+
+def highlight_query(text, query):
+    if not text:
+        return text
+
+    words = query.split()
+
+    for w in words:
+        text = re.sub(
+            f"({w})",
+            r"<mark style='background:#fde68a;padding:2px 4px;border-radius:4px'>\1</mark>",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+    return text
+
+
+def extract_lines(text, max_lines=4):
+
+    if not text:
+        return ""
+
+    lines = text.split("\n")
+    lines = [l.strip() for l in lines if l.strip()]
+
+    return "\n".join(lines[:max_lines])

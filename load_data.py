@@ -1,37 +1,62 @@
-from scraper import scrape_poems
-from rag_engine import vectorstore
-from langchain_core.documents import Document
 import os
+import shutil
+
+from langchain_core.documents import Document
+
+from scraper import scrape_poems
+from rag_engine import build_vectorstore, add_documents_to_store
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
+
+def reset_db_folder():
+    if os.path.exists(DATA_DIR):
+        shutil.rmtree(DATA_DIR)
+    os.makedirs(DATA_DIR, exist_ok=True)
+
 
 def load_data_into_vectorstore():
-    print("در حال جمع‌آوری اشعار از منابع...")
-    poems = scrape_poems()
+    print("در حال استخراج شعرها از گنجور ...")
+    poems = scrape_poems(per_poet_limit=30)
+
+    print(f"تعداد شعرهای استخراج‌شده: {len(poems)}")
 
     if not poems:
-        print("هیچ شعری جمع‌آوری نشد. ممکن است مشکلی در scraper.py وجود داشته باشد.")
+        print("هیچ شعری پیدا نشد. اسکرپر را بررسی کن.")
         return
 
-    print(f"تعداد {len(poems)} قطعه شعر جمع‌آوری شد.")
+    docs = []
+    for item in poems:
+        content = item.get("content", "").strip()
+        title = item.get("title", "").strip() or "شعر بی‌نام"
+        poet = item.get("poet", "").strip() or "نامشخص"
+        source = item.get("source", "").strip()
 
-    docs = [
-        Document(
-            page_content=item["content"],
-            metadata={
-                "source": item.get("source", "نامشخص"),
-                "title": item.get("title", "نامشخص"),
-                "poet": item.get("poet", "نامشخص")
-            }
+        if not content:
+            continue
+
+        docs.append(
+            Document(
+                page_content=content,
+                metadata={
+                    "source": source,
+                    "title": title,
+                    "poet": poet,
+                }
+            )
         )
-        for item in poems
-    ]
 
-    print("در حال اضافه کردن اسناد به VectorStore (ChromaDB)...")
-    try:
-        vectorstore.add_documents(docs)
-        print(f"موفقیت: {len(docs)} شعر در دیتابیس ذخیره شد.")
-        print(f"دیتابیس در مسیر '{os.path.abspath('./data')}' ذخیره شد.")
-    except Exception as e:
-        print(f"خطا در اضافه کردن اسناد به VectorStore: {e}")
+    print(f"تعداد اسناد آماده برای ذخیره: {len(docs)}")
+
+    reset_db_folder()
+    vectorstore = build_vectorstore()
+    add_documents_to_store(vectorstore, docs)
+
+
+
+    print(f"دیتابیس با موفقیت ساخته شد و {len(docs)} سند ذخیره شد.")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,10 @@
+streamlit
+pandas
+requests
+beautifulsoup4
 langchain
 langchain-community
 langchain-chroma
-langchain-ollama
-beautifulsoup4
-requests
-streamlit
+langchain-core
+sentence-transformers
+chromadb
